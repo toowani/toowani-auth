@@ -11,7 +11,7 @@ import {
 } from './cookies';
 import { sanitizeRedirect, isAllowedOrigin, DEFAULT_REDIRECT } from './redirect';
 import { isAuthorized } from './acl';
-import { buildGoogleAuthUrl, resolveGoogleEmail } from './oauth';
+import { buildGoogleAuthUrl, resolveGoogleProfile } from './oauth';
 
 const STATE_TTL_SECONDS = 10 * 60;
 const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -56,12 +56,12 @@ async function handleCallback(request: Request, env: Env): Promise<Response> {
   const claims = await verifyJWT<OAuthStateClaims>(stateCookie, env.SESSION_SECRET);
   if (!claims || claims.state !== state) return new Response('state mismatch', { status: 400 });
 
-  const email = await resolveGoogleEmail(env, code);
-  if (!email) return new Response('google authentication failed', { status: 400 });
+  const profile = await resolveGoogleProfile(env, code);
+  if (!profile) return new Response('google authentication failed', { status: 400 });
 
   const now = Math.floor(Date.now() / 1000);
   const sessionToken = await signJWT<SessionClaims>(
-    { email, iat: now, exp: now + SESSION_TTL_SECONDS },
+    { email: profile.email, name: profile.name, picture: profile.picture, iat: now, exp: now + SESSION_TTL_SECONDS },
     env.SESSION_SECRET
   );
 
@@ -87,7 +87,11 @@ async function handleMe(request: Request, env: Env): Promise<Response> {
   // "{}" rather than an empty body on 401 -- purely so a browser opening
   // this URL directly shows the JSON instead of Chrome's blank error page.
   // The 401 status is still the actual contract; no consumer reads this body.
-  const body = session ? JSON.stringify({ email: session.email }) : '{}';
+  // name/picture are omitted when absent (older sessions, or Google didn't
+  // return them) rather than sent as null -- auth-design.md 14절.
+  const body = session
+    ? JSON.stringify({ email: session.email, name: session.name, picture: session.picture })
+    : '{}';
 
   const headers = new Headers({ 'content-type': 'application/json' });
   // CORS applies only here (auth-design.md 7절) -- /authorize is a

@@ -13,18 +13,27 @@ export function buildGoogleAuthUrl(env: Env, state: string): string {
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: CALLBACK_URL,
+    // "profile" is required for name/picture to appear in the userinfo
+    // response below (auth-design.md 14절) -- without it Google silently
+    // omits both fields rather than erroring.
+    scope: 'openid email profile',
     response_type: 'code',
-    scope: 'openid email',
     state,
     prompt: 'select_account',
   });
   return `${GOOGLE_AUTH_URL}?${params.toString()}`;
 }
 
+export interface GoogleProfile {
+  email: string;
+  name?: string;
+  picture?: string;
+}
+
 // Access-token + userinfo round trip instead of decoding Google's id_token
 // JWT ourselves -- that would require fetching and caching Google's JWKS to
 // verify an RS256 signature, which this scope doesn't need.
-export async function resolveGoogleEmail(env: Env, code: string): Promise<string | null> {
+export async function resolveGoogleProfile(env: Env, code: string): Promise<GoogleProfile | null> {
   const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -46,8 +55,17 @@ export async function resolveGoogleEmail(env: Env, code: string): Promise<string
   });
   if (!userRes.ok) return null;
 
-  const userJson = (await userRes.json()) as { email?: string; email_verified?: boolean };
+  const userJson = (await userRes.json()) as {
+    email?: string;
+    email_verified?: boolean;
+    name?: string;
+    picture?: string;
+  };
   if (!userJson.email || userJson.email_verified === false) return null;
 
-  return userJson.email.toLowerCase();
+  return {
+    email: userJson.email.toLowerCase(),
+    name: userJson.name || undefined,
+    picture: userJson.picture || undefined,
+  };
 }

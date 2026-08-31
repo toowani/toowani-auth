@@ -6,6 +6,10 @@ export interface Env {
 
 export interface SessionClaims {
   email: string;
+  // Optional -- Google doesn't always return these (auth-design.md 14절),
+  // and older sessions issued before this field existed won't have them.
+  name?: string;
+  picture?: string;
   iat: number;
   exp: number;
 }
