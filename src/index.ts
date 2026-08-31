@@ -84,7 +84,10 @@ async function handleLogout(request: Request): Promise<Response> {
 
 async function handleMe(request: Request, env: Env): Promise<Response> {
   const session = await readSession(request, env);
-  const body = session ? JSON.stringify({ email: session.email }) : null;
+  // "{}" rather than an empty body on 401 -- purely so a browser opening
+  // this URL directly shows the JSON instead of Chrome's blank error page.
+  // The 401 status is still the actual contract; no consumer reads this body.
+  const body = session ? JSON.stringify({ email: session.email }) : '{}';
 
   const headers = new Headers({ 'content-type': 'application/json' });
   // CORS applies only here (auth-design.md 7절) -- /authorize is a
