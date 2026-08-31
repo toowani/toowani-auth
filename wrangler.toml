@@ -1,0 +1,10 @@
+name = "toowani-auth"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+
+# Custom Domain, not a Route: same-zone worker-to-worker fetches can bypass
+# Routes, and Custom Domain also creates the DNS record automatically.
+# (auth-design.md 8절)
+routes = [
+  { pattern = "auth.toowani.com", custom_domain = true }
+]

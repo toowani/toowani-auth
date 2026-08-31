@@ -1,0 +1,7 @@
+{
+  "admins": ["kcw9151@gmail.com"],
+  "rules": [
+    { "host": "status.toowani.com", "pathPrefix": "/", "emails": [] },
+    { "host": "p4l.toowani.com", "pathPrefix": "/podcast4life", "emails": [] }
+  ]
+}

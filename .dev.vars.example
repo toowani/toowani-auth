@@ -1,0 +1,3 @@
+GOOGLE_CLIENT_ID=changeme.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=changeme-google-client-secret
+SESSION_SECRET=changeme-run-openssl-rand-base64-32
